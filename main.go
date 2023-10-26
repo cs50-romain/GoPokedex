@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"	
 	"net/http"
+	"os"
+	"strings"
+	//"text/tabwriter"
 )
-
-
 
 type Pokemons struct {
 	Descriptions []struct {
@@ -292,9 +294,9 @@ type Pokemon struct {
 	Weight int `json:"weight"`
 }
 
-func getPokemonsData() Pokemons{
+func getPokemonsData(location string) Pokemons{
 	var pokemons Pokemons
-	response, err := http.Get("http://pokeapi.co/api/v2/pokedex/kanto")
+	response, err := http.Get("http://pokeapi.co/api/v2/pokedex/" + location)
 
 	if err != nil {
 		fmt.Println(err)
@@ -313,50 +315,106 @@ func getPokemonsData() Pokemons{
 
 	return pokemons
 }
+
+func parseCMD(str string) {
+	str = strings.Trim(str, "\n")
+	args := strings.Split(str, " ")
+	cmd := args[0]
+
+	if cmd == "exit" {
+		fmt.Println("Gotta catch'em all! Goodbye Trainer...")
+		os.Exit(0)
+	} else {
+		if cmd == "check" {
+			arg := args[1]
+			pokemon := getPokemonData(arg)
+			displayPokemonData(pokemon)
+		} else if cmd == "location" { 
+			arg := args[1]
+			pokemonsData := getPokemonsData(arg)
+			displayPokemonsNameByLocation(pokemonsData)
+		} else {
+			fmt.Println("Invalid input")
+		}
+	}
+}
 	
 func main() {
-	var kantoPokemons Pokemons
-	kantoPokemonsArray := []string{}
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("> ")
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("err:", err)
+		}
+		parseCMD(input)
+	}
+}
 
-	kantoPokemons = getPokemonsData()
+func displayPokemonsNameByLocation(pokemonsData Pokemons) {
+	locationPokemonsArray := []string{}
 
-	for _, pokemon := range kantoPokemons.PokemonEntries {
-		kantoPokemonsArray = append(kantoPokemonsArray, pokemon.PokemonSpecies.Name)
+	for _, pokemon := range pokemonsData.PokemonEntries {
+		locationPokemonsArray = append(locationPokemonsArray, pokemon.PokemonSpecies.Name)
 	}
 
-	quicksort(kantoPokemonsArray, 0, len(kantoPokemonsArray)-1)
+	quicksort(locationPokemonsArray, 0, len(locationPokemonsArray)-1)
 
-	pokemon1 := getPokemonData(kantoPokemonsArray[50])
-
-	displayPokemons(kantoPokemonsArray)
-
-	displayPokemonData(pokemon1)
+	newlineCounter := 0
+	for _, pokemon := range locationPokemonsArray {
+		fmt.Printf("%20s", pokemon)
+		newlineCounter++
+		if newlineCounter == 3 {
+			fmt.Println()
+			newlineCounter = 0
+		}
+	}
+	fmt.Println()
 }
 
 func getPokemonData(pokemon string) Pokemon {
 	var pokemonData Pokemon
-	response, err := http.Get("http://pokeapi.co/api/v2/pokemon/" + pokemon)
+	url := "http://pokeapi.co/api/v2/pokemon/" + pokemon
+	response, err := http.Get(url)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("First err:", err)
 		return pokemonData
 	}
 	
 	respData, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Second err:", err)
 		return pokemonData
 	}
 
 	if err := json.Unmarshal(respData, &pokemonData); err != nil {
-		fmt.Println(err)
+		fmt.Println("Third err:", err)
 		return pokemonData
 	}
 
 	return pokemonData
 }
 
-func displayPokemonData(pokemonData Pokemon) {
+func displayPokemonData(pokemon Pokemon){
+	fmt.Println(pokemon.Name)
+	fmt.Println(pokemon.Height * 10, "cm")
+	fmt.Println(pokemon.Weight / 10, "kg")
+
+	if len(pokemon.Types) > 0 {
+		fmt.Print("Types: ")
+		for i := 0; i < len(pokemon.Types); i++ {
+			fmt.Print(pokemon.Types[i].Type.Name + "; ")
+		}
+	}
+
+	fmt.Println("\nStats:")
+	for i := 0; i < len(pokemon.Stats); i++ {
+		fmt.Printf("\t- %s:%d\n", pokemon.Stats[i].Stat.Name, pokemon.Stats[i].BaseStat)
+	}
+}
+
+func displayPokemonMoves(pokemonData Pokemon) {
 	pokemonDataArray := []string{}
 
 	for _, move := range pokemonData.Moves {

@@ -1,0 +1,9 @@
+Take a look at a youtube video of a pokedex and then create something similary adaptable to CLI
+
+1. Take care of flow of the pokedex
+	- If a pokemon is "caught", add it to the pokedex -> means to create some sort of cache system
+	- User can display all caught pokemons
+	- user can display info about a certain pokemon; info can be specific, like just moves or just stats
+		- command could be: check pikachu moves
+2. Create a better parsing of command. Maybe ceate own flags, or parse as ou go through
+3. Revisit the displayData, it should be by user input
